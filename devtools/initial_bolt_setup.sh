@@ -2,19 +2,7 @@
 
 set -ev
 
-# REPO_ROOT,HOST_UID,HOST_GID,FLUTTER_PROJECT_SOURCE_CODE_PATH,FLUTTER_BOLT_NAME,STB_IP,FLUTTER_APPLICATION_RECIPE
-cd ${REPO_ROOT}/build
-
-if ! grep "EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE}" conf/local.conf >/dev/null
-then
-cat >> conf/local.conf <<EOF
-INHERIT += "externalsrc"
-EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE} = "/home/tomasz.karczewski/copilot/flutter-wonderous-app"
-EXTERNALSRC_BUILD:pn-${FLUTTER_APPLICATION_RECIPE} = "/home/tomasz.karczewski/copilot/flutter-wonderous-app/yocto_build"
-PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "0"
-FLUTTER_APP_RUNTIME_MODES:pn-${FLUTTER_APPLICATION_RECIPE} = "debug"
-EOF
-fi
+# env: REPO_ROOT,HOST_UID,HOST_GID,FLUTTER_PROJECT_SOURCE_CODE_PATH,FLUTTER_BOLT_NAME,STB_IP,FLUTTER_APPLICATION_RECIPE
 
 if ! [ -d ${REPO_ROOT}/bolts ]
 then
