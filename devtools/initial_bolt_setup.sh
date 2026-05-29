@@ -11,6 +11,11 @@ fi
 
 cd ${REPO_ROOT}/build
 
+if ! grep rm_work conf/local.conf
+then
+    echo 'INHERIT += "rm_work"' >> conf/local.conf
+fi
+
 bitbake bolt-env && hash bolt
 bitbake base-bolt-image
 bitbake flutter-auto-3-38-3-runtime-bolt-image
@@ -22,5 +27,6 @@ cd ${REPO_ROOT}/bolts
 
 bolt make base
 bolt make flutter.runtime.flutter-auto.v3_38_3
+bolt make flutter.runtime.flutter-auto.v3_38_3-debug
 
 bolt make ${FLUTTER_BOLT_NAME}

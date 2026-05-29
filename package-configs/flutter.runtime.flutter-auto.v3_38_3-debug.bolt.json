@@ -1,0 +1,7 @@
+{
+  "config": "com.rdkcentral.flutter.runtime.flutter-auto.v3_38_3-debug.json",
+  "bitbake": {
+    "image": "flutter-auto-3-38-3-runtime-bolt-image" 
+  }
+}
+

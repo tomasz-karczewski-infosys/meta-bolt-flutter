@@ -34,3 +34,18 @@ PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "0"
 FLUTTER_APP_RUNTIME_MODES:pn-${FLUTTER_APPLICATION_RECIPE} = "debug"
 ## @END flutter-bolt-dev
 EOF
+
+export FLUTTER_BOLT_CONFIG=$(jq .config < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_NAME}.bolt.json | tr -d '"')
+
+ID=$(jq .id < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
+VER=$(jq .version < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
+export FLUTTER_OUTPUT_BOLT_NAME=${ID}+${VER}
+
+export REPO_ROOT
+
+! [ -d ~/.ssh ] && mkdir ~/.ssh
+cat > ~/.ssh/config <<EOF
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF

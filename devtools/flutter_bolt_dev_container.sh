@@ -3,14 +3,19 @@ debug="echo [DEBUG]"
 # Resolve the canonical, absolute path of the script itself
 SCRIPT_PATH=$(readlink -f "$0")
 
-# FLUTTER_PROJECT_SOURCE_CODE_PATH="/home/tomasz.karczewski/copilot/flutter-wonderous-app"
-
 # Compute the instance ID using sha256 of the path
 INSTANCE_ID=$(echo -n "$SCRIPT_PATH" | sha256sum | cut -d' ' -f1)
 CONTAINER_NAME="flutter-bolt-dev-container-instance-${INSTANCE_ID}"
 
 # this script should be within the meta-bolt-flutter tree. 
 REPO_ROOT=$(realpath "$(dirname $SCRIPT_PATH)/..")
+
+if [ `basename $REPO_ROOT` != 'meta-bolt-flutter' ]
+then
+    echo "the parent folder of this cript should be meta-bolt-flutter; current: $REPO_ROOT"
+    exit 1
+fi
+
 #$(cd "$(dirname "$SCRIPT_PATH")" && git rev-parse --show-toplevel 2>/dev/null || dirname "$SCRIPT_PATH")
 
 # Utility to send commands to the container's background tmux bash session synchronously
@@ -45,7 +50,7 @@ run_in_tmux() {
     fi
     
     ${debug} -e "******** Running command in container: \n" ${full_command} "\n********"
-    docker exec --user flutter-dev "$CONTAINER_NAME" tmux send-keys -t dev " ${full_command}" ENTER
+    docker exec --user flutter-dev "$CONTAINER_NAME" tmux send-keys -t dev "${full_command}" ENTER
 
     if [ "$is_async" == "1" ]; then
         echo "Command sent to container in async mode. Not waiting for output or exit code."
@@ -146,7 +151,7 @@ cmd_start() {
 
     echo "Starting container $CONTAINER_NAME..."
     echo "Mounting ${REPO_ROOT} and ${project_path}"
-    SCRIPT_DIR=`dirname "$0"`
+    # SCRIPT_DIR=`dirname "$0"`
     docker run -d --name "$CONTAINER_NAME" \
         -e HOST_UID="$(id -u)" \
         -e HOST_GID="$(id -g)" \
@@ -154,8 +159,8 @@ cmd_start() {
         -v "$REPO_ROOT:$REPO_ROOT" \
 	    -v "${project_path}:${project_path}" \
 	    -v "/tmp:/tmp" \
-        -v "${SCRIPT_DIR}/tmux_init.sh:/usr/local/bin/tmux_init.sh" \
-        -v "${SCRIPT_DIR}/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
+        -v "${REPO_ROOT}/devtools/tmux_init.sh:/usr/local/bin/tmux_init.sh" \
+        -v "${REPO_ROOT}/devtools/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
 	    --network host \
         -e REPO_ROOT="${REPO_ROOT}" \
         -e FLUTTER_PROJECT_SOURCE_CODE_PATH="${project_path}" \
@@ -179,7 +184,23 @@ cmd_push() {
     fi
 
     # Execute the push echo output directly from inside the container mapped bash
-    run_in_tmux 'cd ' ${META_BOLT_ROOT} '/bolts; bolt push root@${STB_IP} com.rdkcentral.flutter.app.wonderous+0.1.0'
+    run_in_tmux 'cd ${REPO_ROOT}/bolts; bolt push root@${STB_IP} ${FLUTTER_OUTPUT_BOLT_NAME}'
+}
+
+cmd_make() {
+    if ! is_running; then
+        echo "Error: Container instance is not running."
+        exit 1
+    fi
+
+    ${debug} "Checking required environment variables in container..."
+    run_in_tmux 'if [ -z "$FLUTTER_PROJECT_SOURCE_CODE_PATH" ] || [ -z "$FLUTTER_BOLT_NAME" ] || [ -z "$STB_IP" ]; then echo "ERROR: FLUTTER_PROJECT_SOURCE_CODE_PATH ($FLUTTER_PROJECT_SOURCE_CODE_PATH) and/or FLUTTER_BOLT_NAME ($FLUTTER_BOLT_NAME) and/or STB_IP ($STB_IP) are not defined. Start the container with <project-source-code-path> <bolt-name> <stb-ip> first." >&2; exit 1; fi'
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+
+    # Execute the push echo output directly from inside the container mapped bash
+    run_in_tmux 'cd ${REPO_ROOT}/bolts; bolt make ${FLUTTER_BOLT_NAME}'
 }
 
 cmd_debug() {
@@ -264,6 +285,9 @@ case "$COMMAND" in
         ;;
     dockerbuild)
         docker build . -f Dockerfile-flutter-bolt-dev -t flutter-bolt-dev
+        ;;
+    make)
+        cmd_make "$@"
         ;;
     *)
         echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild} [args...]"
