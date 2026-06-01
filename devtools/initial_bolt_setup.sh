@@ -2,6 +2,24 @@
 
 set -ev
 
+if ( [ -z $1 ] || [ -z $2 ]) && [ "$1" != "NOCACHE" ]
+then
+    echo "You didn't pass sstate-cache path, or downloads path.
+    This will make the initial setup much longer. If you are sure, pass 'NOCACHE' as singe param.
+    If you want to pass downloads folder path, pass it as the first argument. For sstate-cache path, use 2nd argument"
+    exit 1
+fi
+
+if ! [ -z $1 ]
+then
+    echo DL_DIR=\"$1\" >> ${REPO_ROOT}/build/conf/local.conf
+fi
+
+if ! [ -z $2 ]
+then
+    echo SSTATE_DIR=\"$1\" >> ${REPO_ROOT}/build/conf/local.conf
+fi
+
 # env: REPO_ROOT,HOST_UID,HOST_GID,FLUTTER_PROJECT_SOURCE_CODE_PATH,FLUTTER_BOLT_NAME,STB_IP,FLUTTER_APPLICATION_RECIPE
 
 if ! [ -d ${REPO_ROOT}/bolts ]

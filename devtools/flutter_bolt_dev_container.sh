@@ -11,12 +11,6 @@ CONTAINER_NAME="flutter-bolt-dev-container-instance-${INSTANCE_ID}"
 # this script should be within the meta-bolt-flutter tree. 
 REPO_ROOT=$(realpath "$(dirname $SCRIPT_PATH)/..")
 
-if [ `basename $REPO_ROOT` != 'meta-bolt-flutter' ]
-then
-    echo "the parent folder of this cript should be meta-bolt-flutter; current: $REPO_ROOT"
-    exit 1
-fi
-
 #$(cd "$(dirname "$SCRIPT_PATH")" && git rev-parse --show-toplevel 2>/dev/null || dirname "$SCRIPT_PATH")
 
 # Utility to send commands to the container's background tmux bash session synchronously
