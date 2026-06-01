@@ -38,17 +38,19 @@ fi
 cp bolt-tools/gpu-layer-poc/brcm974116sff.json bolt-tools/gpu-layer-poc/brcm972127ott.json
 
 # alias ssh='ssh -o StrictHostKeyChecking=no'
-ssh -o StrictHostKeyChecking=no root@${STB_IP} 'bash -s' < devtools/create_ap1_gpu_layer_overlay.sh || true
+ssh -o StrictHostKeyChecking=no root@${STB_IP} 'bash -s' < devtools/create_ap1_gpu_layer_overlay.sh 
 
-# a hack to 'reconfigure' some bolt folders that are not writeable on apollo+1
-# and it's not really possible to overlay top level dir. so changing 'data/' paths to
-# '/media/mass_storage/data/' that can be written on apollo+1 onemw build 
-# note that we're patching bolt tool implementation in place ...
-BOLT_PATH=$(which bolt)
-echo "patching bolt at: $BOLT_PATH"
-BOLT_CONFIG_FILE=$(dirname $BOLT_PATH)/../share/bolt/src/config.cjs
-sed -i 'data\//media\/mass_storage\/data\//g' ${BOLT_CONFIG_FILE}
+cd ${REPO_ROOT}/bolt-tools/gpu-layer-poc/
+MODE=bind ./setup-gpu-layer.sh root@${STB_IP}
 
-echo "bolt tool config.cjs file modified; current content:"
-cat ${BOLT_CONFIG_FILE}
+#   # a hack to 'reconfigure' some bolt folders that are not writeable on apollo+1
+#   # and it's not really possible to overlay top level dir. so changing 'data/' paths to
+#   # '/media/mass_storage/data/' that can be written on apollo+1 onemw build 
+#   # note that we're patching bolt tool implementation in place ...
+#   BOLT_PATH=$(which bolt)
+#   echo "patching bolt at: $BOLT_PATH"
+#   BOLT_CONFIG_FILE=$(dirname $BOLT_PATH)/../share/bolt/src/config.cjs
+#   sed -i 'data\//media\/mass_storage\/data\//g' ${BOLT_CONFIG_FILE}
+#   echo "bolt tool config.cjs file modified; current content:"
+#   cat ${BOLT_CONFIG_FILE}
 

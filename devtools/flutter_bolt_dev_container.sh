@@ -1,4 +1,5 @@
 #!/bin/bash
+set -v
 debug="echo [DEBUG]"
 # Resolve the canonical, absolute path of the script itself
 SCRIPT_PATH=$(readlink -f "$0")
@@ -220,8 +221,8 @@ cmd_debug() {
     if [ $? -ne 0 ]; then
         exit 1
     fi
-
-    run_in_tmux 'bolt run root@${STB_IP} com.rdkcentral.flutter.app.wonderous+0.1.0 >/tmp/cmd.log 2>&1 >/tmp/bolt_run_output.log' ASYNC
+    # com.rdkcentral.flutter.app.wonderous+0.1.0 
+    run_in_tmux 'bolt run root@${STB_IP} ${FLUTTER_OUTPUT_BOLT_NAME} >/tmp/cmd.log 2>&1 >/tmp/bolt_run_output.log' ASYNC
 
     CTR=15
     # a hack for 'flutter run' with custom device: to discover the VM
