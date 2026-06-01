@@ -95,12 +95,16 @@ get_container_env() {
     docker exec --user flutter-dev "$CONTAINER_NAME" printenv "$env_name" 2>/dev/null
 }
 
+start_usage() {
+    echo "Usage: $0 start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe>"
+}
+
 cmd_start() {
     local tag="latest"
     local project_path=""
     local bolt_name=""
     local stb_ip=""
-        local application_recipe=""
+    local application_recipe=""
 
     if is_running; then
         echo "Warning: Container instance '$CONTAINER_NAME' is already running."
@@ -112,32 +116,53 @@ cmd_start() {
         case "$1" in
             --tag)
                 if [ -z "$2" ]; then
-                    echo "Usage: $0 start [--tag <tag>] <project-source-code-path> <bolt-name> <stb-ip> <application-bitbake-recipe>"
+                    start_usage
                     exit 1
                 fi
                 tag="$2"
                 shift 2
                 ;;
-            *)
-                if [ -z "$project_path" ]; then
-                    project_path="$1"
-                elif [ -z "$bolt_name" ]; then
-                    bolt_name="$1"
-                elif [ -z "$stb_ip" ]; then
-                    stb_ip="$1"
-                elif [ -z "$application_recipe" ]; then
-                    application_recipe="$1"
-                else
-                    echo "Usage: $0 start [--tag <tag>] <project-source-code-path> <bolt-name> <stb-ip> <application-bitbake-recipe>"
+            --project-path)
+                if [ -z "$2" ]; then
+                    start_usage
                     exit 1
                 fi
-                shift
+                project_path="$2"
+                shift 2
+                ;;
+            --bolt-name)
+                if [ -z "$2" ]; then
+                    start_usage
+                    exit 1
+                fi
+                bolt_name="$2"
+                shift 2
+                ;;
+            --stb-ip)
+                if [ -z "$2" ]; then
+                    start_usage
+                    exit 1
+                fi
+                stb_ip="$2"
+                shift 2
+                ;;
+            --application-recipe)
+                if [ -z "$2" ]; then
+                    start_usage
+                    exit 1
+                fi
+                application_recipe="$2"
+                shift 2
+                ;;
+            *)
+                start_usage
+                exit 1
                 ;;
         esac
     done
 
     if [ -z "$project_path" ] || [ -z "$bolt_name" ] || [ -z "$stb_ip" ] || [ -z "$application_recipe" ]; then
-        echo "Usage: $0 start [--tag <tag>] <project-source-code-path> <bolt-name> <stb-ip> <application-bitbake-recipe>"
+        start_usage
         exit 1
     fi
 
@@ -286,7 +311,7 @@ case "$COMMAND" in
         ;;
     *)
         echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild} [args...]"
-        echo "  start [--tag <tag>] <project-source-code-path> <bolt-name> <stb-ip> <application-bitbake-recipe>"
+        echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe>"
         exit 1
         ;;
 esac
