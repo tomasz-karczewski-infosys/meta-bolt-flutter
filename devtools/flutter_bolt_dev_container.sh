@@ -96,7 +96,7 @@ get_container_env() {
 }
 
 start_usage() {
-    echo "Usage: $0 start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe>"
+    echo "Usage: $0 start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
 }
 
 cmd_start() {
@@ -105,6 +105,9 @@ cmd_start() {
     local bolt_name=""
     local stb_ip=""
     local application_recipe=""
+    local downloads_path=""
+    local sstate_path=""
+    local docker_args=()
 
     if is_running; then
         echo "Warning: Container instance '$CONTAINER_NAME' is already running."
@@ -113,57 +116,65 @@ cmd_start() {
     fi
 
     while [ $# -gt 0 ]; do
+        if [ $# -lt 2 ]; then
+            start_usage
+            exit 1
+        fi
+
         case "$1" in
             --tag)
-                if [ -z "$2" ]; then
-                    start_usage
-                    exit 1
-                fi
                 tag="$2"
-                shift 2
                 ;;
             --project-path)
-                if [ -z "$2" ]; then
-                    start_usage
-                    exit 1
-                fi
                 project_path="$2"
-                shift 2
                 ;;
             --bolt-name)
-                if [ -z "$2" ]; then
-                    start_usage
-                    exit 1
-                fi
                 bolt_name="$2"
-                shift 2
                 ;;
             --stb-ip)
-                if [ -z "$2" ]; then
-                    start_usage
-                    exit 1
-                fi
                 stb_ip="$2"
-                shift 2
                 ;;
             --application-recipe)
-                if [ -z "$2" ]; then
-                    start_usage
-                    exit 1
-                fi
                 application_recipe="$2"
-                shift 2
+                ;;
+            --downloads-path)
+                downloads_path="$2"
+                ;;
+            --sstate-path)
+                sstate_path="$2"
                 ;;
             *)
                 start_usage
                 exit 1
                 ;;
         esac
+
+        shift 2
     done
 
     if [ -z "$project_path" ] || [ -z "$bolt_name" ] || [ -z "$stb_ip" ] || [ -z "$application_recipe" ]; then
         start_usage
         exit 1
+    fi
+
+    if [ -n "$downloads_path" ] && [ ! -d "$downloads_path" ]; then
+        echo "Error: Downloads path does not exist: $downloads_path"
+        exit 1
+    fi
+
+    if [ -n "$sstate_path" ] && [ ! -d "$sstate_path" ]; then
+        echo "Error: Sstate path does not exist: $sstate_path"
+        exit 1
+    fi
+
+    if [ -n "$downloads_path" ]; then
+        docker_args+=( -v "${downloads_path}:${downloads_path}" )
+        docker_args+=( -e "DOWNLOADS_PATH=${downloads_path}" )
+    fi
+
+    if [ -n "$sstate_path" ]; then
+        docker_args+=( -v "${sstate_path}:${sstate_path}" )
+        docker_args+=( -e "SSTATE_PATH=${sstate_path}" )
     fi
 
     # Clean up dead container if it exists
@@ -181,6 +192,7 @@ cmd_start() {
 	    -v "/tmp:/tmp" \
         -v "${REPO_ROOT}/devtools/tmux_init.sh:/usr/local/bin/tmux_init.sh" \
         -v "${REPO_ROOT}/devtools/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
+	    "${docker_args[@]}" \
 	    --network host \
         -e REPO_ROOT="${REPO_ROOT}" \
         -e FLUTTER_PROJECT_SOURCE_CODE_PATH="${project_path}" \
@@ -311,7 +323,7 @@ case "$COMMAND" in
         ;;
     *)
         echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild} [args...]"
-        echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe>"
+        echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
         exit 1
         ;;
 esac
