@@ -32,6 +32,7 @@ INHERIT += "externalsrc"
 EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}"
 EXTERNALSRC_BUILD:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}/yocto_build"
 # TODO: not a general thing; should probably be removed TODO
+# BUT: "0" might be necessary if you first build the app outside of meta-bolt-flutter? TODO check
 PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "1"
 FLUTTER_APP_RUNTIME_MODES:pn-${FLUTTER_APPLICATION_RECIPE} = "debug"
 ## @END flutter-bolt-dev
