@@ -3,12 +3,13 @@
 # env: REPO_ROOT,HOST_UID,HOST_GID,FLUTTER_PROJECT_SOURCE_CODE_PATH,FLUTTER_BOLT_NAME,STB_IP,FLUTTER_APPLICATION_RECIPE
 set -e
 
-# the script should be run from root of meta-bolt-flutter!
-if [ `basename $PWD` != 'meta-bolt-flutter' ]
+TOPLEVEL=`git rev-parse --show-toplevel`
+if [ "$PWD" !=  "${TOPLEVEL}" ]
 then
-    echo "the script should be run with \$PWD in root of meta-bolt-flutter; current: $PWD"
+    echo "the script should be run with \$PWD in root of meta-bolt-flutter - ${TOPLEVEL}; current: $PWD"
+    exit 1
 else
-    REPO_ROOT=`pwd`
+    REPO_ROOT=$PWD
 
     # a hack to 'reconfigure' some bolt folders that are not writeable on apollo+1
     # and it's not really possible to overlay top level dir. so changing 'data/' paths to
