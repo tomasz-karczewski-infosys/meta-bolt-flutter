@@ -1,5 +1,7 @@
 #!/bin/bash
-set -v
+
+# note: enabling 'set -v' here will make 'debug' command start working via 'flutter run ...' command (flutter is parsing the logs!)
+#set -v
 debug="echo [DEBUG]"
 # Resolve the canonical, absolute path of the script itself
 SCRIPT_PATH=$(readlink -f "$0")
