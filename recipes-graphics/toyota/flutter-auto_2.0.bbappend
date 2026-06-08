@@ -29,6 +29,7 @@ HOMESCREEN_COMMIT = "1cded8b60f1e095aeb7fafadc199272594c14d94"
 # --- Adding launcher script that allows to pass in right flutter launch app path coming from entryPoint in package-config of the separate app bolt package
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 SRC_URI:append = " file://flutter-auto-bolt.sh"
+SRC_URI:append = " file://flutter-auto-bolt-debug.sh"
 
 # --- Neutralize SRCREV metadata that refers to 'name=plugins' ---
 # The base recipe appends '_plugins' to SRCREV_FORMAT and sets SRCREV_plugins.
@@ -58,8 +59,11 @@ EXTRA_OECMAKE += "\
     -DBUILD_PLUGINS=OFF \
     -DENABLE_DBUS=OFF \
 "
+
 FILES:${PN}:append = " ${bindir}/flutter-auto-bolt.sh"
+FILES:${PN}:append = " ${bindir}/flutter-auto-bolt-debug.sh"
 
 do_install:append() {
 	install -m 0555 ${WORKDIR}/flutter-auto-bolt.sh ${D}${bindir}
+	install -m 0555 ${WORKDIR}/flutter-auto-bolt-debug.sh ${D}${bindir}
 }
