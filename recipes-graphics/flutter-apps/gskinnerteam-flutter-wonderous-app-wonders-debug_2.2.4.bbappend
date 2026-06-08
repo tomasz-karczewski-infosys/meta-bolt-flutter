@@ -1,3 +1,0 @@
-S = "${WORKDIR}/git"
-
-FLUTTER_APP_RUNTIME_MODES="debug"
