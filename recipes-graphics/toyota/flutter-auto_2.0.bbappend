@@ -49,6 +49,8 @@ PACKAGECONFIG[simple-shell] = "-DENABLE_SIMPLE_SHELL_CLIENT=ON,-DENABLE_SIMPLE_S
 # Override PACKAGECONFIG for flutter-auto_2.0
 # Keep only the minimal set needed: backend-wayland-egl and simple-shell for now to get up and running, we can expand afterwards.
 
+DEPENDS += "flutter-engine"
+
 PACKAGECONFIG = "\
     backend-wayland-egl \
     simple-shell \

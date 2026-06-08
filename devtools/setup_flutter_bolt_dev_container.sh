@@ -31,7 +31,7 @@ EOF
 INHERIT += "externalsrc"
 EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}"
 EXTERNALSRC_BUILD:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}/yocto_build"
-# Ignore the lockfile so external source builds remain consistent with the container workflow.
+# Ignore the lockfile so external source builds remain consistent with the container workflow. TODO: does it even work with EXTERNALSRC?
 PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "1"
 FLUTTER_APP_RUNTIME_MODES:pn-${FLUTTER_APPLICATION_RECIPE} = "debug"
 ## @END flutter-bolt-dev

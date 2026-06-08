@@ -10,7 +10,7 @@ inherit base-bolt-image
 # XXX installing baselayer rdke profile1, it's content is defined in this packagegroup
 IMAGE_INSTALL:remove = "packagegroup-app-base-layer-rdke-profile1"
 
-IMAGE_INSTALL += "flutter-engine-release"
+IMAGE_INSTALL += "flutter-engine-debug"
 IMAGE_INSTALL += "flutter-auto"
 
 #need to add to solve flutter-auto runtime error: xkbcommon: ERROR: failed to add default include path /usr/share/X11/xkb
