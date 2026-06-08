@@ -323,8 +323,21 @@ case "$COMMAND" in
     make)
         cmd_make "$@"
         ;;
+    makepush)
+        cmd_make "$@"
+        cmd_push "$@"
+        ;;
+    ctrlc)
+        if ! is_running; then
+            echo "Error: Container instance is not running."
+            exit 1
+        fi
+        docker exec --user flutter-dev "$CONTAINER_NAME" tmux send-keys -t dev C-c
+        # todo: sth smarter than sleep?
+        sleep 3
+        ;;
     *)
-        echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild} [args...]"
+        echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild|make|makepush|ctrlc} [args...]"
         echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
         exit 1
         ;;

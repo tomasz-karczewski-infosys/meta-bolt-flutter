@@ -1,0 +1,35 @@
+{
+  "custom-devices": [
+    {
+      "id": "rdkdevice",
+      "label": "onemw apollo+1",
+      "sdkNameAndVersion": "rdke",
+      "platform": null,
+      "enabled": true,
+      "ping": [
+        "ping",
+        "-c",
+        "1",
+        "-w",
+        "1",
+        "10.42.0.36"
+      ],
+      "pingSuccessRegex": null,
+      "postBuild": null,
+      "install": [
+        "/home/tomasz.karczewski/builds/meta-bolt-flutter-tkr-2/devtools/flutter_bolt_dev_container.sh",
+        "makepush"
+      ],
+      "uninstall": [
+        "/home/tomasz.karczewski/builds/meta-bolt-flutter-tkr-2/devtools/flutter_bolt_dev_container.sh",
+        "ctrlc"
+      ],
+      "runDebug": [
+        "/home/tomasz.karczewski/builds/meta-bolt-flutter-tkr-2/devtools/flutter_bolt_dev_container.sh",
+        "debug"
+      ],
+      "forwardPortSuccessRegex": "Port forwarding success",
+      "screenshot": null
+    }
+  ]
+}

@@ -52,3 +52,8 @@ Host *
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
 EOF
+
+REMOVE_FROM_RM="RM_WORK_EXCLUDE:append = \" ${FLUTTER_APPLICATION_RECIPE} ${FLUTTER_APPLICATION_RECIPE}-bolt-image\""
+if ! grep -q "${REMOVE_FROM_RM}" ${REPO_ROOT}/build/conf/local.conf; then
+    echo -e "\n${REMOVE_FROM_RM}" >> ${REPO_ROOT}/build/conf/local.conf
+fi
