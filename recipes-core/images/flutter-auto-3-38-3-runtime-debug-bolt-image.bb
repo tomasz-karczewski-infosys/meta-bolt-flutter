@@ -5,7 +5,6 @@ SUMMARY = "Flutter runtime bolt image"
 # We adapted it to support RDK simple-shell, see code in https://github.com/bcatrysse/ivi-homescreen/tree/v2.0_with_simple_shell
 # status 27 March 2026 by BartC : is compiling successfully, successfull bolt runtime test done on RDK-8 brcm VA with wonderous flutter app
 
-# TODO: do we really need the whole base image here? it is >50mb like this
 inherit base-bolt-image
 
 # XXX installing baselayer rdke profile1, it's content is defined in this packagegroup

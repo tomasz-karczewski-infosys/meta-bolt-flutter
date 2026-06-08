@@ -6,6 +6,10 @@ SUMMARY = "Flutter runtime bolt image"
 # status 27 March 2026 by BartC : is compiling successfully, successfull bolt runtime test done on RDK-8 brcm VA with wonderous flutter app
 
 inherit base-bolt-image
+
+# XXX installing baselayer rdke profile1, it's content is defined in this packagegroup
+IMAGE_INSTALL:remove = "packagegroup-app-base-layer-rdke-profile1"
+
 IMAGE_INSTALL += "flutter-engine-release"
 IMAGE_INSTALL += "flutter-auto"
 
