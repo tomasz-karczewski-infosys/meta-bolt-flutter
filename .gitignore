@@ -2,3 +2,6 @@
 poky
 deps
 build
+bolt-tools
+bolts
+.github
