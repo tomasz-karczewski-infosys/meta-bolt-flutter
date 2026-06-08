@@ -50,7 +50,6 @@ PACKAGECONFIG[simple-shell] = "-DENABLE_SIMPLE_SHELL_CLIENT=ON,-DENABLE_SIMPLE_S
 # Keep only the minimal set needed: backend-wayland-egl and simple-shell for now to get up and running, we can expand afterwards.
 
 DEPENDS += "flutter-engine"
-#RDEPENDS += "flutter-engine-debug flutter-engine-release flutter-engine-profile"
 
 PACKAGECONFIG = "\
     backend-wayland-egl \
