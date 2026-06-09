@@ -1,0 +1,6 @@
+FLUTTER_BOLT_NAME=flutter.app.wonderous-debug
+FLUTTER_APP=gskinnerteam-flutter-wonderous-app-wonders-debug
+OE_SSTATE_PATH=/home/tomasz.karczewski/builds/meta-bolt-flutter/build/sstate-cache
+STB_IP=10.42.0.36
+APP_DIR=/home/tomasz.karczewski/builds/flutter-wonderous-app
+OE_DOWNLOADS=/home/tomasz.karczewski/builds/meta-bolt-flutter/build/downloads
