@@ -99,6 +99,11 @@ start_usage() {
     echo "Usage: $0 start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
 }
 
+first_time_init_usage() {
+    echo "Usage: $0 first_time_init [--tag <tag>] --downloads-path <downloads-path> --sstate-path <sstate-path>"
+    echo "   or: $0 first_time_init [--tag <tag>] --init-cache-path <init-cache-path>"
+}
+
 cmd_start() {
     local tag="latest"
     local project_path=""
@@ -202,6 +207,125 @@ cmd_start() {
     wait_for_tmux || return 1
 }
 
+cmd_first_time_init() {
+    local tag="latest"
+    local downloads_path=""
+    local sstate_path=""
+    local init_cache_path=""
+    local docker_args=()
+
+    if is_running; then
+        echo "Warning: Container instance '$CONTAINER_NAME' is already running."
+        echo "Attached repository path: $REPO_ROOT"
+        echo "Attach with: $0 bash"
+        return 0
+    fi
+
+    while [ $# -gt 0 ]; do
+        if [ $# -lt 2 ]; then
+            first_time_init_usage
+            exit 1
+        fi
+
+        case "$1" in
+            --tag)
+                tag="$2"
+                ;;
+            --downloads-path)
+                downloads_path="$2"
+                ;;
+            --sstate-path)
+                sstate_path="$2"
+                ;;
+            --init-cache-path)
+                init_cache_path="$2"
+                ;;
+            *)
+                first_time_init_usage
+                exit 1
+                ;;
+        esac
+
+        shift 2
+    done
+
+    if [ -n "$init_cache_path" ] && { [ -n "$downloads_path" ] || [ -n "$sstate_path" ]; }; then
+        echo "Error: Use either --downloads-path/--sstate-path or --init-cache-path, not both."
+        first_time_init_usage
+        exit 1
+    fi
+
+    if [ -z "$init_cache_path" ] && { [ -z "$downloads_path" ] || [ -z "$sstate_path" ]; }; then
+        echo "Error: Missing cache arguments."
+        if [ -z "$downloads_path" ]; then
+            echo "  Missing: --downloads-path <downloads-path>"
+        fi
+        if [ -z "$sstate_path" ]; then
+            echo "  Missing: --sstate-path <sstate-path>"
+        fi
+        echo "Pass both --downloads-path and --sstate-path to use existing cache directories,"
+        echo "or pass --init-cache-path <init-cache-path> to create and use:"
+        echo "  <init-cache-path>/downloads"
+        echo "  <init-cache-path>/sstate"
+        first_time_init_usage
+        exit 1
+    fi
+
+    if [ -n "$init_cache_path" ]; then
+        mkdir -p "${init_cache_path}"
+        init_cache_path=$(realpath "$init_cache_path")
+        docker_args+=( -v "${init_cache_path}:${init_cache_path}" )
+        docker_args+=( -e "INIT_CACHE_PATH=${init_cache_path}" )
+    else
+        if [ ! -d "$downloads_path" ]; then
+            echo "Error: Downloads path does not exist: $downloads_path"
+            exit 1
+        fi
+
+        if [ ! -d "$sstate_path" ]; then
+            echo "Error: Sstate path does not exist: $sstate_path"
+            exit 1
+        fi
+
+        docker_args+=( -v "${downloads_path}:${downloads_path}" )
+        docker_args+=( -v "${sstate_path}:${sstate_path}" )
+    fi
+
+    if [ -n "$downloads_path" ]; then
+        docker_args+=( -e "DOWNLOADS_PATH=${downloads_path}" )
+    fi
+
+    if [ -n "$sstate_path" ]; then
+        docker_args+=( -e "SSTATE_PATH=${sstate_path}" )
+    fi
+
+    # Remove a stopped container with the same generated name, if present.
+    docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1
+
+    echo "Starting first-time init container $CONTAINER_NAME..."
+    echo "Mounting ${REPO_ROOT}"
+    docker run -d --name "$CONTAINER_NAME" \
+        -e HOST_UID="$(id -u)" \
+        -e HOST_GID="$(id -g)" \
+        --security-opt apparmor=unconfined \
+        -v "$REPO_ROOT:$REPO_ROOT" \
+        -v "/tmp:/tmp" \
+        -v "${REPO_ROOT}/devtools/scripts/first_time_init_tmux.sh:/usr/local/bin/first_time_init_tmux.sh" \
+        -v "${REPO_ROOT}/devtools/scripts/first_time_init_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
+        "${docker_args[@]}" \
+        --network host \
+        -e REPO_ROOT="${REPO_ROOT}" \
+        "flutter-bolt-dev:$tag"
+    wait_for_tmux || return 1
+
+    if [ -t 0 ] && [ -t 1 ]; then
+        echo "Attaching to first-time init tmux session. Detach with Ctrl+B, then D."
+        cmd_bash
+    else
+        echo "First-time init is running in tmux. Attach with: $0 bash"
+    fi
+}
+
 cmd_push() {
     if ! is_running; then
         echo "Error: Container instance is not running."
@@ -296,6 +420,9 @@ COMMAND="$1"
 shift
 
 case "$COMMAND" in
+    first_time_init)
+        cmd_first_time_init "$@"
+        ;;
     start)
         cmd_start "$@"
         ;;
@@ -331,7 +458,9 @@ case "$COMMAND" in
         sleep 3
         ;;
     *)
-        echo "Usage: $0 {start|push|debug|stop|bash|dockerbuild|make|makepush|ctrlc} [args...]"
+        echo "Usage: $0 {first_time_init|start|push|debug|stop|bash|dockerbuild|make|makepush|ctrlc} [args...]"
+        echo "  first_time_init [--tag <tag>] --downloads-path <downloads-path> --sstate-path <sstate-path>"
+        echo "  first_time_init [--tag <tag>] --init-cache-path <init-cache-path>"
         echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
         exit 1
         ;;

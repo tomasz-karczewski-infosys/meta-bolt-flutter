@@ -14,15 +14,19 @@ This directory contains helper scripts, templates, and container tooling used to
 devtools/flutter_bolt_dev_container.sh dockerbuild
 ```
 
-3. start the container (need to pass some parameters; see later sections)
+3. run the first-time init if the workspace has not been synced/built yet:
+
+```bash
+devtools/flutter_bolt_dev_container.sh first_time_init (...)
+```
+
+4. start the container (need to pass some parameters; see later sections)
 
 ```bash
 devtools/flutter_bolt_dev_container.sh start (...)
 ```
 
-4. if that's the first build, initial build is necessary; initial_bolt_setup.sh script does that (should be run from within the container)
-
-a note: the initial cold build takes quite a lot of time, might be like 1-2h. This is greatly improved if downloads and sstate-cache are provided, prewarmed with outputs from some already finished build (--downloads-path and --sstate-path parameters). At the moment only local-folder sstate/downloads are supported (no mirrors etc.). With sstate/downloads, the build should not take more than maybe 10 minutes.
+The initial cold build takes quite a lot of time, might be like 1-2h. This is greatly improved if downloads and sstate-cache are provided, prewarmed with outputs from some already finished build (--downloads-path and --sstate-path parameters). At the moment only local-folder sstate/downloads are supported (no mirrors etc.). With sstate/downloads, the build should not take more than maybe 10 minutes.
 
 5. update & copy custom_devices.json to local flutter config dir (like ~/.config/flutter/custom_devices.json). This will allow to build and deploy the app on the device with 'flutter' tool
 
@@ -92,6 +96,24 @@ export OE_SSTATE_PATH=/home/tomasz.karczewski/builds/meta-bolt-flutter/build/sst
 
 ## Start the Development Container
 
+For a fresh workspace, run first-time initialization before starting the app development container:
+
+```bash
+cd "${ROOT_DIR}"
+devtools/flutter_bolt_dev_container.sh first_time_init \
+	--downloads-path "${OE_DOWNLOADS}" \
+	--sstate-path "${OE_SSTATE_PATH}"
+```
+
+If you do not have prewarmed downloads and sstate-cache directories, provide an init cache directory instead:
+
+```bash
+devtools/flutter_bolt_dev_container.sh first_time_init \
+	--init-cache-path "${ROOT_DIR}/build/init-cache"
+```
+
+This creates `${ROOT_DIR}/build/init-cache/sstate` and `${ROOT_DIR}/build/init-cache/downloads`, configures BitBake to use them, and disables `rm_work` so the cold build can populate the cache. The command attaches to the container tmux session so the setup output remains visible. If setup fails, the shell stays open for debugging.
+
 ```bash
 cd "${ROOT_DIR}"
 devtools/flutter_bolt_dev_container.sh start \
@@ -118,6 +140,7 @@ The shell runs inside a `tmux` session. Exiting the shell stops the session and 
 The container wrapper supports the following commands:
 
 - `start`: start the development container
+- `first_time_init`: run repo setup and the initial Bolt build in a tmux session
 - `bash`: attach to the `tmux` session inside the container
 - `make`: build the configured Flutter Bolt package
 - `push`: push the built Bolt package to the target device

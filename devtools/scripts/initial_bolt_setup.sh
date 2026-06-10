@@ -1,10 +1,13 @@
 #!/bin/bash
 
 set -ev
-if ([ -z "${SSTATE_PATH}" ] || [ -z "${DOWNLOADS_PATH}" ]) && [ "$1" != "NOCACHE" ]
+
+if [ -z "${SSTATE_PATH}" ] || [ -z "${DOWNLOADS_PATH}" ]
 then
-    echo "You did not pass an sstate-cache path or downloads path when starting the container.
-    This will make the initial setup and build much slower. If that is intentional, pass 'NOCACHE'."
+    echo "Error: Missing cache environment."
+    [ -z "${DOWNLOADS_PATH}" ] && echo "  Missing: DOWNLOADS_PATH"
+    [ -z "${SSTATE_PATH}" ] && echo "  Missing: SSTATE_PATH"
+    echo "Start first-time init with --downloads-path and --sstate-path, or with --init-cache-path."
     exit 1
 fi
 
@@ -27,9 +30,17 @@ cd ${REPO_ROOT}/build
 
 if ! grep rm_work conf/local.conf
 then
-    echo 'INHERIT += "rm_work"' >> conf/local.conf
-    echo RM_WORK_EXCLUDE:append:class-native = \" \${PN}\" >> conf/local.conf
-    echo RM_WORK_EXCLUDE:append:class-nativesdk = \" \${PN}\" >> conf/local.conf
+    if [ -z "${INIT_CACHE_PATH}" ]
+    then
+        echo 'INHERIT += "rm_work"' >> conf/local.conf
+        echo RM_WORK_EXCLUDE:append:class-native = \" \${PN}\" >> conf/local.conf
+        echo RM_WORK_EXCLUDE:append:class-nativesdk = \" \${PN}\" >> conf/local.conf
+    fi
+fi
+
+if [ -n "${INIT_CACHE_PATH}" ] && ! grep -q '^INHERIT:remove = "rm_work"$' conf/local.conf
+then
+    echo 'INHERIT:remove = "rm_work"' >> conf/local.conf
 fi
 
 bitbake nodejs-native
