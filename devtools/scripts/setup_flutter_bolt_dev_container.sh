@@ -1,11 +1,13 @@
 #!/bin/bash
 # env: REPO_ROOT,HOST_UID,HOST_GID,FLUTTER_PROJECT_SOURCE_CODE_PATH,FLUTTER_BOLT_NAME,STB_IP,FLUTTER_APPLICATION_RECIPE
-
-git config --global user.email "you@example.com"
-git config --global user.name "Your Name"
-# Disable color output to avoid interactive prompts from repo.
-git config --global color.ui false
 export REPO_ROOT
+
+cd ${REPO_ROOT}
+
+git config --local user.email "you@example.com"
+git config --local user.name "Your Name"
+# Disable color output to avoid interactive prompts from repo.
+git config --local color.ui false
 
 # Disable host key checks inside the container to avoid interactive SSH prompts.
 ! [ -d ~/.ssh ] && mkdir ~/.ssh
@@ -17,7 +19,6 @@ EOF
 
 #alias ssh='ssh -o StrictHostKeyChecking=no'
 
-cd ${REPO_ROOT}
 . setup-environment 
 
 if [ -d ${REPO_ROOT}/build ] && [ -f ${REPO_ROOT}/build/conf/local.conf ]
@@ -51,7 +52,7 @@ ID=$(jq .id < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
 VER=$(jq .version < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
 export FLUTTER_OUTPUT_BOLT_NAME=${ID}+${VER}
 
-REMOVE_FROM_RM="RM_WORK_EXCLUDE:append = \" ${FLUTTER_APPLICATION_RECIPE} ${FLUTTER_APPLICATION_RECIPE}-bolt-image ${FLUTTER_APPLICATION_RECIPE}-debug-bolt-image ${FLUTTER_APPLICATION_RECIPE}-profile-bolt-image\""
+REMOVE_FROM_RM="RM_WORK_EXCLUDE:append = \" ${FLUTTER_APPLICATION_RECIPE} ${FLUTTER_APPLICATION_RECIPE}-bolt-image\""
 if ! grep -q "${REMOVE_FROM_RM}" ${REPO_ROOT}/build/conf/local.conf; then
     echo -e "\n${REMOVE_FROM_RM}" >> ${REPO_ROOT}/build/conf/local.conf
 fi

@@ -44,5 +44,5 @@ cd ${REPO_ROOT}/bolts
 
 bolt make base
 bolt make flutter.runtime.flutter-auto.v3_38_3
-bolt make flutter.runtime.flutter-auto.v3_38_3-debug
-bolt make flutter.runtime.flutter-auto.v3_38_3-profile
+bolt make flutter.runtime.flutter-auto-debug.v3_38_3
+bolt make flutter.runtime.flutter-auto-profile.v3_38_3
