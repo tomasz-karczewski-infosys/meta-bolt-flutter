@@ -185,6 +185,8 @@ cmd_start() {
     # Remove a stopped container with the same generated name, if present.
     docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1
 
+    export REPO_ROOT
+
     echo "Starting container $CONTAINER_NAME..."
     echo "Mounting ${REPO_ROOT} and ${project_path}"
     docker run -d --name "$CONTAINER_NAME" \
@@ -311,10 +313,11 @@ cmd_first_time_init() {
         -v "$REPO_ROOT:$REPO_ROOT" \
         -v "/tmp:/tmp" \
         -v "${REPO_ROOT}/devtools/scripts/first_time_init_tmux.sh:/usr/local/bin/first_time_init_tmux.sh" \
-        -v "${REPO_ROOT}/devtools/scripts/first_time_init_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
+        -v "${REPO_ROOT}/devtools/scripts/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
         "${docker_args[@]}" \
         --network host \
         -e REPO_ROOT="${REPO_ROOT}" \
+        -e TMUX_INIT_SCRIPT="/usr/local/bin/first_time_init_tmux.sh" \
         "flutter-bolt-dev:$tag"
     wait_for_tmux || return 1
 
@@ -388,7 +391,7 @@ cmd_debug() {
     
     if grep "Dart VM service is listening on" /tmp/bolt_run_output.log >/dev/null
     then
-        echo flutter: The Dart VM service is listening on http://${stb_ip}:12345/
+        echo flutter: The Dart VM service is listening on http://${stb_ip}:22342/
     else
         echo "The app didn't start!"
         exit 1

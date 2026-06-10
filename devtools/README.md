@@ -42,7 +42,7 @@ And also have access to devtools & the flutter console to hot-reload, enable som
 
 - there is only 'debug' mode support in the scripting right now; should be possible to build & deploy the app in profile/release, but manually, from within the container session
 
-- the devtools port is hardcoded on the device (12345)
+- the devtools port is hardcoded on the device (22342)
 
 - screen size (1080p) & pixel ratio (16.0/9.0) are currently hardcoded in the launch script
 

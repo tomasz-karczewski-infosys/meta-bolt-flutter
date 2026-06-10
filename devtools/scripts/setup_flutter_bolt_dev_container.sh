@@ -17,8 +17,6 @@ Host *
     UserKnownHostsFile /dev/null
 EOF
 
-#alias ssh='ssh -o StrictHostKeyChecking=no'
-
 . setup-environment 
 
 if [ -d ${REPO_ROOT}/build ] && [ -f ${REPO_ROOT}/build/conf/local.conf ]
