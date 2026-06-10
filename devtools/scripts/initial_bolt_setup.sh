@@ -36,7 +36,6 @@ bitbake nodejs-native
 
 bitbake bolt-env && hash bolt
 bitbake base-bolt-image
-bitbake flutter-auto-3-38-3-runtime-bolt-image
 
 # Add the meta-bolt package-config location so `bolt make base` can resolve it.
 echo "${REPO_ROOT}/deps/bolt" >> ${REPO_ROOT}/build/conf/setup.done
@@ -46,5 +45,4 @@ cd ${REPO_ROOT}/bolts
 bolt make base
 bolt make flutter.runtime.flutter-auto.v3_38_3
 bolt make flutter.runtime.flutter-auto.v3_38_3-debug
-
-bolt make ${FLUTTER_BOLT_NAME}
+bolt make flutter.runtime.flutter-auto.v3_38_3-profile

@@ -8,7 +8,14 @@ git config --global color.ui false
 export REPO_ROOT
 
 # Disable host key checks inside the container to avoid interactive SSH prompts.
-alias ssh='ssh -o StrictHostKeyChecking=no'
+! [ -d ~/.ssh ] && mkdir ~/.ssh
+cat > ~/.ssh/config <<EOF
+Host *
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+
+#alias ssh='ssh -o StrictHostKeyChecking=no'
 
 cd ${REPO_ROOT}
 . setup-environment 
@@ -31,9 +38,8 @@ EOF
 INHERIT += "externalsrc"
 EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}"
 EXTERNALSRC_BUILD:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}/yocto_build"
-# Ignore the lockfile so external source builds remain consistent with the container workflow.
-PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "1"
-FLUTTER_APP_RUNTIME_MODES:pn-${FLUTTER_APPLICATION_RECIPE} = "debug"
+# TODO: better handled in the recipe -- Ignore the lockfile so external source builds remain consistent with the container workflow.
+# PUBSPEC_IGNORE_LOCKFILE:pn-${FLUTTER_APPLICATION_RECIPE} = "1"
 ## @END flutter-bolt-dev
 EOF
 
@@ -45,14 +51,7 @@ ID=$(jq .id < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
 VER=$(jq .version < ${REPO_ROOT}/package-configs/${FLUTTER_BOLT_CONFIG} | tr -d '"')
 export FLUTTER_OUTPUT_BOLT_NAME=${ID}+${VER}
 
-! [ -d ~/.ssh ] && mkdir ~/.ssh
-cat > ~/.ssh/config <<EOF
-Host *
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-EOF
-
-REMOVE_FROM_RM="RM_WORK_EXCLUDE:append = \" ${FLUTTER_APPLICATION_RECIPE} ${FLUTTER_APPLICATION_RECIPE}-bolt-image\""
+REMOVE_FROM_RM="RM_WORK_EXCLUDE:append = \" ${FLUTTER_APPLICATION_RECIPE} ${FLUTTER_APPLICATION_RECIPE}-bolt-image ${FLUTTER_APPLICATION_RECIPE}-debug-bolt-image ${FLUTTER_APPLICATION_RECIPE}-profile-bolt-image\""
 if ! grep -q "${REMOVE_FROM_RM}" ${REPO_ROOT}/build/conf/local.conf; then
     echo -e "\n${REMOVE_FROM_RM}" >> ${REPO_ROOT}/build/conf/local.conf
 fi
