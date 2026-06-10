@@ -190,7 +190,7 @@ cmd_start() {
 	    -v "${project_path}:${project_path}" \
 	    -v "/tmp:/tmp" \
         -v "${REPO_ROOT}/devtools/tmux_init.sh:/usr/local/bin/tmux_init.sh" \
-        -v "${REPO_ROOT}/devtools/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
+        -v "${REPO_ROOT}/devtools/scripts/flutter_dev_entrypoint.sh:/usr/local/bin/entrypoint.sh" \
 	    "${docker_args[@]}" \
 	    --network host \
         -e REPO_ROOT="${REPO_ROOT}" \

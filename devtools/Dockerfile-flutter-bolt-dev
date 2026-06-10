@@ -2,7 +2,7 @@
 # To guarantee you don't run into issues on affected systems, you should run this container with:
 #   docker run --security-opt apparmor=unconfined ...
 # Another option is to disable AppArmor restrictions on the host, for example:
-#   sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0 
+#   sudo sysctl kernel.apparmor_restrict_unprivileged_userns=0
 
 FROM ubuntu:22.04
 
@@ -62,8 +62,8 @@ RUN apt update \
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
-COPY flutter_dev_entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY tmux_init.sh /usr/local/bin/tmux_init.sh
+COPY scripts/flutter_dev_entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/tmux_init.sh /usr/local/bin/tmux_init.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/tmux_init.sh
 
 # Keep the root user briefly so the entrypoint can map host UID/GID dynamically
