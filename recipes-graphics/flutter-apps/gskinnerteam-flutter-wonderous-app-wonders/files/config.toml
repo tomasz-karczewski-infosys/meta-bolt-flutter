@@ -1,0 +1,5 @@
+[view]
+width = 1920
+height = 1080
+pixel_ratio = 1.8                                    # set flutter engine pixel ratio
+fullscreen = true                                    # do not start in fullscreen
