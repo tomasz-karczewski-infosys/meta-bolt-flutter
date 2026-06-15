@@ -30,17 +30,9 @@ cd ${REPO_ROOT}/build
 
 if ! grep rm_work conf/local.conf
 then
-    if [ -z "${INIT_CACHE_PATH}" ]
-    then
-        echo 'INHERIT += "rm_work"' >> conf/local.conf
-        echo RM_WORK_EXCLUDE:append:class-native = \" \${PN}\" >> conf/local.conf
-        echo RM_WORK_EXCLUDE:append:class-nativesdk = \" \${PN}\" >> conf/local.conf
-    fi
-fi
-
-if [ -n "${INIT_CACHE_PATH}" ] && ! grep -q '^INHERIT:remove = "rm_work"$' conf/local.conf
-then
-    echo 'INHERIT:remove = "rm_work"' >> conf/local.conf
+    echo 'INHERIT += "rm_work"' >> conf/local.conf
+    echo RM_WORK_EXCLUDE:append:class-native = \" \${PN}\" >> conf/local.conf
+    echo RM_WORK_EXCLUDE:append:class-nativesdk = \" \${PN}\" >> conf/local.conf
 fi
 
 bitbake nodejs-native
