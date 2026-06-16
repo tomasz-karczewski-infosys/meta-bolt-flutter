@@ -1,0 +1,177 @@
+[needed on 3.38.3 arm64 host]
+meta-flutter repo patch backporting upstream master PR #747 : 
+	'patch DEPS condition for JDK download on aarch64 cross-compile builds'
+
+with flutter 3.38.3, this is necessary to build flutter-engine on arm64 host, which by
+default will try & fail to unconditionally fetch openjdk for arm64 (this openjdk config doesn't exist)
+this should already be fixed on meta-flutter master (and in the upstream google flutter)
+
+diff --git a/conf/include/common.inc b/conf/include/common.inc
+index 50f556f4..845e6c82 100644
+--- a/conf/include/common.inc
++++ b/conf/include/common.inc
+@@ -490,10 +490,11 @@ def build_app(d, source_dir, flutter_sdk, pubspec_appname, flutter_application_p
+                 frontend_snapshot = f'{flutter_sdk}/bin/cache/artifacts/engine/linux-{clang_build_arch(d)}/frontend_server.dart.snapshot'
+                 dep_path = glob.glob(f'{source_dir}/{flutter_application_path}/.dart_tool/flutter_build/*/kernel_snapshot.d')
+             else:
+-                dart_runtime = f'{flutter_sdk}/bin/cache/dart-sdk/bin/dartaotruntime'
+-                frontend_snapshot = f'{flutter_sdk}/bin/cache/artifacts/engine/linux-{clang_build_arch(d)}/frontend_server_aot.dart.snapshot'
++                dart_runtime    = f'{flutter_sdk}/bin/cache/dart-sdk/bin/dartaotruntime'
++                sdk_snapshot    = f'{flutter_sdk}/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot'
++                engine_snapshot = f'{flutter_sdk}/bin/cache/artifacts/engine/linux-{clang_build_arch(d)}/frontend_server_aot.dart.snapshot'
++                frontend_snapshot = sdk_snapshot if os.path.exists(sdk_snapshot) else engine_snapshot
+                 dep_path = glob.glob(f'{source_dir}/{flutter_application_path}/.dart_tool/flutter_build/*/kernel_snapshot_program.d')
+-
+             cmd = f'{dart_runtime} \
+                 --disable-dart-dev \
+                 {frontend_snapshot} \
+diff --git a/lib/gn.py b/lib/gn.py
+index 7e5e6547..65d5a7a7 100644
+--- a/lib/gn.py
++++ b/lib/gn.py
+@@ -10,6 +10,7 @@ Copyright (c) 2023-2025 Joel Winarske. All rights reserved.
+ 
+ import os
+ import bb
++import json
+ import multiprocessing
+ import subprocess
+ import urllib
+@@ -20,6 +21,13 @@ from   bb.fetch2 import logger
+ from   bb.fetch2 import runfetchcmd
+ from   bb.fetch2 import subprocess_setup
+ 
++
++def _to_gclient_dict(d):
++    """
++    Serialize a Python dict to a gclient-spec-safe string.
++    """
++    return json.dumps(d).replace("null", "None")
++
+ class GN(FetchMethod):
+     """Class to fetch urls via 'wget'"""
+     def supports(self, ud, d):
+@@ -45,13 +53,30 @@ class GN(FetchMethod):
+         custom_vars = d.getVar("GN_CUSTOM_VARS")
+         custom_deps = d.getVar("GN_CUSTOM_DEPS")
+ 
++        extra_custom_deps_str = d.getVar("GN_EXTRA_CUSTOM_DEPS") or "{}"
++        try:
++            import ast
++            extra_custom_deps = ast.literal_eval(extra_custom_deps_str)
++        except Exception:
++            bb.warn(f"GN_EXTRA_CUSTOM_DEPS could not be parsed, ignoring: {extra_custom_deps_str}")
++            extra_custom_deps = {}
++
++        try:
++            import ast as _ast
++            base_custom_deps = _ast.literal_eval(custom_deps) if custom_deps.strip() != "{}" else {}
++        except Exception:
++            base_custom_deps = {}
++
++        merged_custom_deps = {**base_custom_deps, **extra_custom_deps}
++        merged_custom_deps_str = _to_gclient_dict(merged_custom_deps)
++
+         gclient_config = f'''solutions = [
+   {{
+     "name": "{name}",
+     "url": "{uri}",
+     "deps_file": "{deps_file}",
+     "managed": False,
+-    "custom_deps": {custom_deps},
++    "custom_deps": {merged_custom_deps_str},
+     "custom_vars": {custom_vars},
+   }},
+ ]'''
+@@ -76,6 +101,41 @@ class GN(FetchMethod):
+ 
+         srcdir = d.getVar("S")
+ 
++        deps_sed_patches = d.getVar("GN_DEPS_SED_PATCHES") or ""
++
++        if deps_sed_patches.strip():
++            heredoc_cmds = []
++            for expr in deps_sed_patches.strip().splitlines():
++                expr = expr.strip()
++                if not expr:
++                    continue
++                if "|" not in expr:
++                    bb.warn(f"GN_DEPS_SED_PATCHES entry missing '|' separator, skipping: {expr}")
++                    continue
++                old_str, new_str = expr.split("|", 1)
++                # Escape any double quotes in old/new (rare but safe).
++                old_dq = old_str.replace('"', '\\\"'  )
++                new_dq = new_str.replace('"', '\\\"'  )
++                heredoc_cmds.append(
++                    f"(python3 << 'PATCHEOF'\n"
++                    f'c = open("DEPS").read()\n'
++                    f'c = c.replace("{old_dq}", "{new_dq}")\n'
++                    f'open("DEPS", "w").write(c)\n'
++                    f"PATCHEOF\n)"
++                )
++            patch_cmds = " && ".join(heredoc_cmds)
++            patch_and_commit = (
++                f" && {patch_cmds} "
++                f"&& git add DEPS "
++                f"&& git -c user.email=\"yocto@build\" -c user.name=\"yocto\" "
++                f"commit -m \"fix: restore DEPS condition for cross-compile host\" "
++            )
++            # Use HEAD as the gclient revision so it doesn't reset the change.
++            gclient_revision = "$(git rev-parse HEAD)"
++        else:
++            patch_and_commit = ""
++            gclient_revision = srcrev
++
+         ud.basecmd = f'export DEPOT_TOOLS_UPDATE=0; \
+             export XDG_CONFIG_HOME={depot_tools_xdg_config_home}; \
+             export CURL_CA_BUNDLE={curl_ca_bundle}; \
+@@ -84,8 +144,13 @@ class GN(FetchMethod):
+             mkdir -p {vpython_virtualenv_root}; \
+             export VPYTHON_VIRTUALENV_ROOT="{vpython_virtualenv_root}"; \
+             cd "{ud.syncpath}"; \
+-            gclient config --spec \'{gclient_config}\'; \
+-            gclient sync --force {sync_opt} --revision {srcrev} -j {bb_number_threads} -v'
++            git init . \
++            && git remote add origin {uri} \
++            && git fetch origin {srcrev} --depth=1 --no-tags \
++            && git checkout FETCH_HEAD \
++            {patch_and_commit}\
++            && gclient config --spec \'{gclient_config}\' \
++            && gclient sync --force {sync_opt} --revision {gclient_revision} -j {bb_number_threads} -v'
+ 
+ 
+         dl_dir = d.getVar("DL_DIR")
+@@ -176,5 +241,4 @@ class GN(FetchMethod):
+ 
+         sanity check to ensure same name and type.
+         """
+-        return ("", '')
+-
++        return ("", '')
+\ No newline at end of file
+diff --git a/recipes-graphics/flutter-engine/flutter-engine_git.bb b/recipes-graphics/flutter-engine/flutter-engine_git.bb
+index 8772e3ec..e68e60fc 100644
+--- a/recipes-graphics/flutter-engine/flutter-engine_git.bb
++++ b/recipes-graphics/flutter-engine/flutter-engine_git.bb
+@@ -66,6 +66,7 @@ SRC_URI:libc-musl += "\
+ 
+ inherit gn-fetcher features_check pkgconfig
+ 
++GN_DEPS_SED_PATCHES:pn-flutter-engine:aarch64 = "# Always download the JDK since java is required for running the formatter.|'condition': 'download_android_deps',"
+ 
+ # For gn.bbclass
+ GN_CUSTOM_VARS ?= '\
+@@ -74,6 +75,13 @@ GN_CUSTOM_VARS ?= '\
+     "download_windows_deps": False, \
+     "download_linux_deps": False,   \
+ }'
++GN_CUSTOM_VARS:aarch64 ?= '\
++{
++    "download_android_deps": False, \
++    "download_windows_deps": False, \
++    "download_linux_deps": False,   \
++    "download_fuchsia_deps": False, \
++}'
+ EXTRA_GN_SYNC ?= "--shallow --no-history -R -D"
+ 
+ COMPATIBLE_MACHINE = "(-)"

@@ -28,4 +28,10 @@ mkdir -p deps
 pushd $_
 repo init --standalone-manifest --manifest-url="file://${MANIFEST}" ${BOLT_REPO_INIT_PARAMS}
 repo sync ${BOLT_REPO_SYNC_PARAMS}
+
+# v3.38.3 : apply backported fix to enable flutter-engine compilation on arm64 host
+git -C meta-flutter apply ${BASE_DIR}/repo-patches/backport-cfc0d7d5d831a238ab7b9bc21f66fbb6af3c1984.patch
+# 3.38.3 : forcefully disable openjdk fetch (doesn't work on arm64 host)
+git -C meta-flutter apply ${BASE_DIR}/repo-patches/disable_jdk.patch
+
 popd

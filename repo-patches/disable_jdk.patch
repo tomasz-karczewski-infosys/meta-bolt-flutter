@@ -1,0 +1,35 @@
+make sure that gn doesn't try to fetch openjdk dependency - in
+our case it is not needed (not supporting Android with meta-bolt-flutter),
+and gn is still trying to fetch that & fails on flutter-engine build
+
+diff --git a/recipes-graphics/flutter-engine/flutter-engine_git.bb b/recipes-graphics/flutter-engine/flutter-engine_git.bb
+index eea90b97..1af47d96 100644
+--- a/recipes-graphics/flutter-engine/flutter-engine_git.bb
++++ b/recipes-graphics/flutter-engine/flutter-engine_git.bb
+@@ -55,7 +55,7 @@ SRC_URI:append:libc-musl = "\
+ 
+ inherit gn-fetcher features_check pkgconfig
+ 
+-GN_DEPS_SED_PATCHES:pn-flutter-engine:aarch64 = "# Always download the JDK since java is required for running the formatter.|'condition': 'download_android_deps',"
++GN_DEPS_SED_PATCHES = "# Always download the JDK since java is required for running the formatter.|'condition': 'False',"
+ 
+ # For gn.bbclass
+ GN_CUSTOM_VARS ?= '\
+@@ -63,13 +63,16 @@ GN_CUSTOM_VARS ?= '\
+     "download_android_deps": False, \
+     "download_windows_deps": False, \
+     "download_linux_deps": False,   \
++    "download_fuchsia_deps": False, \
++    "download_jdk": False, \
+ }'
+ GN_CUSTOM_VARS:aarch64 ?= '\
+-{
++{\
+     "download_android_deps": False, \
+     "download_windows_deps": False, \
+     "download_linux_deps": False,   \
+     "download_fuchsia_deps": False, \
++    "download_jdk": False, \
+ }'
+ EXTRA_GN_SYNC ?= "--shallow --no-history -R -D"
+ 
