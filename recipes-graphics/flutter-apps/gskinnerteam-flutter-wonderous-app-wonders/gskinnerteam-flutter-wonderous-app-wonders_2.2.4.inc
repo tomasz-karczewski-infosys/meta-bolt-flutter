@@ -15,6 +15,9 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=6570d633a333be7d4362fdecbf311bfd"
 SRCREV = "f406f017dd0e6ac8aef8a98c2904cd56cdb105ab"
 SRC_URI = "git://github.com/gskinnerTeam/flutter-wonderous-app.git;lfs=0;branch=main;protocol=https"
 
+SRC_URI:append = "${@' file://config-debug.toml' if d.getVar('FLUTTER_APP_RUNTIME_MODES') in ('debug', 'profile') else ' file://config.toml'}"
+APP_CONFIG = "${@'config-debug.toml' if d.getVar('FLUTTER_APP_RUNTIME_MODES') in ('debug', 'profile') else 'config.toml'}"
+
 PUBSPEC_APPNAME = "wonders"
 FLUTTER_APPLICATION_INSTALL_SUFFIX = "gskinnerteam-flutter-wonderous-app-wonders"
 PUBSPEC_IGNORE_LOCKFILE = "1"

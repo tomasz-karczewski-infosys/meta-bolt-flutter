@@ -1,0 +1,4 @@
+# release config
+[view]
+pixel_ratio = 1.8                                    # set flutter engine pixel ratio
+fullscreen = true                                    # start in fullscreen
