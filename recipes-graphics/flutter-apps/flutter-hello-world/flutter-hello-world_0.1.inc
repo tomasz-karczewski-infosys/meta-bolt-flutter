@@ -1,26 +1,29 @@
-# Hello world app to start with
+#
+# Copyright (c) 20XX Whoever owns that. All rights reserved.
 #
 
-SUMMARY = "hello_world_app"
-DESCRIPTION = "Flutter hello world example"
-AUTHOR = "Google"
-HOMEPAGE = "https://github.com/flutter/flutter/blob/master/examples/hello_world/README.md"
+SUMMARY = "My app"
+DESCRIPTION = "description"
+AUTHOR = "me"
+HOMEPAGE = "None"
 BUGTRACKER = "None"
 SECTION = "graphics"
 
-LICENSE = "BSD-3-Clause"
-LIC_FILES_CHKSUM = "file://LICENSE;md5=ee7acc875d764bd7af8cde74d2de71cd"
-#LIC_FILES_CHKSUM = "file://../license-destdir/common-licenses/BSD-3-Clause;md5=550794465ba0ec5312d6919e203a55f9"
-SRCREV = "dd37b21edfedcb993cb91358a74e9bc7e8f5e551"
-SRC_URI = "git://github.com/bcatrysse/flutter_hello_world.git;branch=develop;protocol=https"
+LICENSE = "CLOSED"
 
-S = "${WORKDIR}/git"
+SRC_URI = "git://github.com/tomasz-karczewski-infosys/my_app.git;lfs=0;branch=master;protocol=https;rev=3cd6acfc335c52cca90465749b9630f2a2ddf7d7"
+SRC_URI[sha256sum] = "1cdfc21d7e8fad6e2888ecf3565c2d72c1bce2df3526859565af0b3e6ed4100a"
 
-PUBSPEC_APPNAME = "hello_world"
-FLUTTER_APPLICATION_INSTALL_SUFFIX = "flutter-samples-hello-world-app"
-PUBSPEC_IGNORE_LOCKFILE = "1"
-FLUTTER_APPLICATION_PATH = "hello_world"
+SRC_URI:append = "${@' file://config-debug.toml' if d.getVar('FLUTTER_APP_RUNTIME_MODES') in ('debug', 'profile') else ' file://config.toml'}"
+APP_CONFIG = "${@'config-debug.toml' if d.getVar('FLUTTER_APP_RUNTIME_MODES') in ('debug', 'profile') else 'config.toml'}"
+
+PUBSPEC_APPNAME = "my_app"
+FLUTTER_APPLICATION_INSTALL_SUFFIX = "myapp"
+# PUBSPEC_IGNORE_LOCKFILE = "1"
+FLUTTER_APPLICATION_PATH = ""
 
 inherit flutter-app
 
 do_compile[network] = "1"
+
+S = "${WORKDIR}/git"

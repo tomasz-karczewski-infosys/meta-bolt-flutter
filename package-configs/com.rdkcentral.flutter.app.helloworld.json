@@ -4,7 +4,7 @@
   "versionName": "develop",
   "name": "Flutter Hello World",
   "packageType": "application",
-  "entryPoint": "/usr/share/flutter/flutter-samples-hello-world-app/3.38.3/release",
+  "entryPoint": "/usr/share/flutter/myapp/3.38.3/release",
   "dependencies": {
     "com.rdkcentral.flutter.runtime.flutter-auto.v3_38_3": "0.0.1"
   },
