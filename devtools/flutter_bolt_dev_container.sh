@@ -99,6 +99,19 @@ get_container_env() {
     docker exec --user flutter-dev "$CONTAINER_NAME" printenv "$env_name" 2>/dev/null
 }
 
+is_build_volume_mounted() {
+    local mounted_volume
+
+    mounted_volume=$(get_container_env BOLT_BUILD_VOLUME_NAME)
+    if [ "$mounted_volume" != "$BUILD_VOLUME_NAME" ]; then
+        return 1
+    fi
+
+    docker inspect -f '{{range .Mounts}}{{printf "%s|%s|%s\n" .Type .Name .Destination}}{{end}}' "$CONTAINER_NAME" \
+        | awk -F'|' -v name="$BUILD_VOLUME_NAME" -v dest="${REPO_ROOT}/build" \
+            '$1 == "volume" && $2 == name && $3 == dest { found = 1 } END { exit !found }'
+}
+
 start_usage() {
     echo "Usage: $0 start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
 }
@@ -403,6 +416,119 @@ cmd_make() {
     run_in_tmux 'mkdir -p ${REPO_ROOT}/build/bolts; cd ${REPO_ROOT}/build/bolts; bolt make ${FLUTTER_BOLT_NAME}'
 }
 
+cmd_expose_flutter_sdk() {
+    local application_recipe
+    local sdk_path
+    local sdk_path_count
+    local container_sdk_path
+    local rel_path
+    local host_sdk_path
+    local copy_exit
+
+    if ! is_running; then
+        echo "Error: Container instance is not running."
+        exit 1
+    fi
+
+    if ! docker volume inspect "$BUILD_VOLUME_NAME" >/dev/null 2>&1; then
+        echo "Docker build volume is not available: ${BUILD_VOLUME_NAME}"
+        # echo "Run first_time_init with --use-build-volume before exposing the Flutter SDK."
+        exit 1
+    fi
+
+    if ! is_build_volume_mounted; then
+        echo "Error: Container is not using Docker build volume ${BUILD_VOLUME_NAME} at ${REPO_ROOT}/build."
+        echo "Start the container after creating the build volume, then retry expose_flutter_sdk."
+        exit 1
+    fi
+
+    application_recipe=$(get_container_env FLUTTER_APPLICATION_RECIPE)
+    sdk_path=$(docker exec --user flutter-dev -e APPLICATION_RECIPE="$application_recipe" "$CONTAINER_NAME" bash -lc '
+        set -e
+
+        search_root="${REPO_ROOT}/build/tmp-glibc/work"
+
+        if [ -z "$APPLICATION_RECIPE" ] || [ ! -d "$search_root" ]; then
+            exit 0
+        fi
+
+        find "$search_root" \
+            -path "*/${APPLICATION_RECIPE}*/recipe-sysroot-native/usr/share/flutter/sdk" \
+            -type d | sort -u
+    ')
+
+    local find_exit=$?
+    if [ $find_exit -ne 0 ]; then
+        echo "Error: Failed to locate Flutter SDK inside the Docker build volume."
+        exit $find_exit
+    fi
+
+    if [ -z "$sdk_path" ]; then
+        echo "Error: No Flutter SDK found in the Docker build volume."
+        if [ -n "$application_recipe" ]; then
+            echo "Searched for recipe: ${application_recipe}"
+        fi
+        exit 1
+    fi
+
+    sdk_path_count=$(printf "%s\n" "$sdk_path" | wc -l | tr -d ' ')
+    if [ "$sdk_path_count" -ne 1 ]; then
+        echo "Error: Expected exactly one Flutter SDK path, found ${sdk_path_count}:"
+        printf "%s\n" "$sdk_path"
+        exit 1
+    fi
+
+    container_sdk_path="$sdk_path"
+
+    rel_path="${container_sdk_path#${REPO_ROOT}/build/}"
+    if [ "$rel_path" = "$container_sdk_path" ]; then
+        echo "Error: Refusing to copy unexpected SDK path: $container_sdk_path"
+        exit 1
+    fi
+
+    host_sdk_path="${REPO_ROOT}/build/${rel_path}"
+
+    [ $host_sdk_path != "$container_sdk_path" ] && {
+        echo "Host SDK path must be the same as container SDK path: ${host_sdk_path}"
+        exit 1
+    }
+
+    # if was already exposed in a previous run, skip copying again
+    if [ -f "${REPO_ROOT}/flutter_sdk_path.txt" ]; then
+        existing_host_sdk_path=$(cat "${REPO_ROOT}/flutter_sdk_path.txt")
+        if [ "$existing_host_sdk_path" = "$host_sdk_path" ]; then
+            echo "Flutter SDK already exposed at host path: ${host_sdk_path}"
+            exit 0
+        else
+            # just move it if the existing path is different, to avoid stale SDK paths after re-builds with different SDK locations
+            echo "Moving previously exposed Flutter SDK from ${existing_host_sdk_path} to ${host_sdk_path}..."
+            rm -rf "$host_sdk_path"
+            mv "$existing_host_sdk_path" "$host_sdk_path"
+            # update the recorded path
+            echo ${host_sdk_path} > "${REPO_ROOT}/flutter_sdk_path.txt"
+            exit 0
+        fi
+    fi
+
+    echo "Exposing Flutter SDK:"
+    echo "  from Docker volume: ${container_sdk_path}"
+    echo "  to host path:       ${host_sdk_path}"
+
+    rm -rf "$host_sdk_path"
+    mkdir -p "$host_sdk_path"
+
+    docker cp "${CONTAINER_NAME}:${container_sdk_path}/." "$host_sdk_path"
+    copy_exit=$?
+    if [ $copy_exit -ne 0 ]; then
+        echo "Error: Failed to copy Flutter SDK from container."
+        exit $copy_exit
+    fi
+
+    echo ${host_sdk_path} > "${REPO_ROOT}/flutter_sdk_path.txt"
+
+    echo "Flutter SDK exposed to host build directory."
+}
+
 cmd_debug() {
     local stb_ip=""
 
@@ -414,6 +540,8 @@ cmd_debug() {
     stb_ip=$(get_container_env STB_IP)
 
     ${debug} "Debug on: STB_IP: ${stb_ip}."
+
+    cmd_expose_flutter_sdk || true
 
     run_in_tmux 'bolt run root@${STB_IP} ${FLUTTER_OUTPUT_BOLT_NAME} >/tmp/cmd.log 2>&1 >/tmp/bolt_run_output.log' ASYNC
 
@@ -484,6 +612,9 @@ case "$COMMAND" in
     make)
         cmd_make "$@"
         ;;
+    expose_flutter_sdk)
+        cmd_expose_flutter_sdk "$@"
+        ;;
     makepush)
         cmd_make "$@"
         cmd_push "$@"
@@ -498,10 +629,11 @@ case "$COMMAND" in
         sleep 3
         ;;
     *)
-        echo "Usage: $0 {first_time_init|start|push|debug|stop|bash|dockerbuild|make|makepush|ctrlc} [args...]"
+        echo "Usage: $0 {first_time_init|start|push|debug|stop|bash|dockerbuild|make|expose_flutter_sdk|makepush|ctrlc} [args...]"
         echo "  first_time_init [--tag <tag>] [--use-build-volume] --downloads-path <downloads-path> --sstate-path <sstate-path>"
         echo "  first_time_init [--tag <tag>] [--use-build-volume] --init-cache-path <init-cache-path>"
         echo "  start [--tag <tag>] --project-path <project-source-code-path> --bolt-name <bolt-name> --stb-ip <stb-ip> --application-recipe <application-bitbake-recipe> [--downloads-path <downloads-path>] [--sstate-path <sstate-path>]"
+        echo "  expose_flutter_sdk"
         exit 1
         ;;
 esac
