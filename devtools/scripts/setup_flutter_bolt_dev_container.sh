@@ -10,8 +10,6 @@ git config --global user.name "Your Name"
 # Disable color output to avoid interactive prompts from repo.
 git config --global color.ui false
 
-mkdir "${REPO_ROOT}/yocto-work"
-
 # Disable host key checks inside the container to avoid interactive SSH prompts.
 ! [ -d ~/.ssh ] && mkdir ~/.ssh
 cat > ~/.ssh/config <<EOF
@@ -40,7 +38,6 @@ EOF
 INHERIT += "externalsrc"
 EXTERNALSRC:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}"
 EXTERNALSRC_BUILD:pn-${FLUTTER_APPLICATION_RECIPE} = "${FLUTTER_PROJECT_SOURCE_CODE_PATH}/yocto_build"
-BASE_WORKDIR:pn-${FLUTTER_APPLICATION_RECIPE} = "${REPO_ROOT}/yocto-work"
 ## @END flutter-bolt-dev
 EOF
 
